@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Pass Generator - Team C</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .editor-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .editor-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(56, 239, 125, 0.4);
+        }
+
+        .warning {
+            background: #ff6b6b;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .pass-container {
+            perspective: 1000px;
+        }
+
+        .ticket {
+            width: 700px;
+            height: 280px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            position: relative;
+            display: flex;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .ticket-main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        /* Theme Backgrounds */
+        .theme-glitchy-glitch .ticket-main {
+            background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+            position: relative;
+            animation: glitchBg 0.5s infinite;
+        }
+
+        @keyframes glitchBg {
+            0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+            25% { filter: hue-rotate(90deg); box-shadow: inset 0 0 50px rgba(0,255,0,0.3); }
+            50% { background-position: 100% 50%; filter: hue-rotate(180deg); }
+            75% { filter: hue-rotate(270deg); box-shadow: inset 0 0 50px rgba(255,0,255,0.3); }
+            100% { background-position: 0% 50%; filter: hue-rotate(360deg); }
+        }
+
+        .theme-glitchy-glitch .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(90deg, transparent 0%, rgba(0,255,0,0.1) 50%, transparent 100%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.03) 2px, rgba(0,255,0,0.03) 4px);
+            animation: glitchScan 3s linear infinite;
+        }
+
+        @keyframes glitchScan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .theme-royal-blue .ticket-main {
+            background: linear-gradient(135deg, #0a1628, #1e3c72, #2a5298, #4a69bd);
+            box-shadow: inset 0 0 100px rgba(42, 82, 152, 0.5);
+        }
+
+        .theme-royal-blue .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 80% 20%, rgba(74, 105, 189, 0.4) 0%, transparent 50%);
+        }
+
+        .theme-cyberpunk .ticket-main {
+            background: linear-gradient(135deg, #0a0015, #ff00ff, #00ffff, #ff00ff, #0a0015);
+            background-size: 200% 200%;
+            animation: cyberpunkShift 4s ease infinite;
+            box-shadow: 0 0 50px rgba(255,0,255,0.5), inset 0 0 50px rgba(0,255,255,0.3);
+        }
+
+        @keyframes cyberpunkShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .theme-cyberpunk .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(90deg, transparent 0px, rgba(255,0,255,0.1) 1px, transparent 2px, transparent 40px),
+                repeating-linear-gradient(0deg, transparent 0px, rgba(0,255,255,0.1) 1px, transparent 2px, transparent 40px);
+        }
+
+        .theme-fortnite .ticket-main {
+            background: linear-gradient(135deg, #2d1b3d, #5b2c6f, #9d4dbb, #c77dff);
+            box-shadow: 0 0 40px rgba(157, 77, 187, 0.6);
+        }
+
+        .theme-fortnite .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 40%, rgba(199, 125, 255, 0.3) 0%, transparent 60%),
+                linear-gradient(45deg, transparent 30%, rgba(157, 77, 187, 0.2) 50%, transparent 70%);
+        }
+
+        .theme-royal-ruby .ticket-main {
+            background: linear-gradient(135deg, #4a0000, #8b0000, #dc143c, #ff4757);
+            box-shadow: 0 0 50px rgba(220, 20, 60, 0.6), inset 0 0 50px rgba(255, 71, 87, 0.2);
+        }
+
+        .theme-royal-ruby .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 70% 30%, rgba(255, 71, 87, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(220, 20, 60, 0.3) 0%, transparent 50%);
+        }
+
+        .theme-elite-emerald .ticket-main {
+            background: linear-gradient(135deg, #022c22, #064e3b, #10b981, #34d399);
+            box-shadow: 0 0 50px rgba(16, 185, 129, 0.5);
+        }
+
+        .theme-elite-emerald .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 60% 30%, rgba(52, 211, 153, 0.3) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 40%, rgba(16, 185, 129, 0.2) 50%, transparent 60%);
+        }
+
+        .theme-aurum-elite .ticket-main {
+            background: linear-gradient(135deg, #3d2f0f, #705010, #d4af37, #ffd700, #fff4cc);
+            box-shadow: 0 0 60px rgba(212, 175, 55, 0.7), inset 0 0 60px rgba(255, 215, 0, 0.3);
+            animation: goldShimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes goldShimmer {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .theme-aurum-elite .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+            animation: goldSweep 3s ease-in-out infinite;
+        }
+
+        @keyframes goldSweep {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        .theme-silver-package .ticket-main {
+            background: linear-gradient(135deg, #374151, #6b7280, #9ca3af, #d1d5db, #f3f4f6);
+            color: #1a1a1a;
+            box-shadow: 0 0 40px rgba(156, 163, 175, 0.6);
+        }
+
+        .theme-silver-package .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
+            animation: silverShine 2.5s ease-in-out infinite;
+        }
+
+        @keyframes silverShine {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        .theme-platinum-executive .ticket-main {
+            background: linear-gradient(135deg, #1f2937, #4b5563, #6b7280, #9ca3af, #d1d5db);
+            color: #1a1a1a;
+            box-shadow: 0 0 50px rgba(107, 114, 128, 0.7), inset 0 0 50px rgba(209, 213, 219, 0.2);
+        }
+
+        .theme-platinum-executive .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 80% 30%, rgba(209, 213, 219, 0.4) 0%, transparent 50%),
+                linear-gradient(135deg, transparent 40%, rgba(156, 163, 175, 0.3) 50%, transparent 60%);
+        }
+
+        .theme-diamond-legacy .ticket-main {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6, #60a5fa, #93c5fd, #dbeafe, #eff6ff);
+            color: #1a1a1a;
+            box-shadow: 0 0 60px rgba(96, 165, 250, 0.8), inset 0 0 60px rgba(219, 234, 254, 0.4);
+            animation: diamondSparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes diamondSparkle {
+            0%, 100% { filter: brightness(1) contrast(1); }
+            50% { filter: brightness(1.3) contrast(1.1); }
+        }
+
+        .theme-diamond-legacy .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.6) 0%, transparent 30%),
+                radial-gradient(circle at 80% 70%, rgba(147, 197, 253, 0.5) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(219, 234, 254, 0.3) 0%, transparent 50%);
+        }
+
+        .theme-carbon-copy .ticket-main {
+            background: linear-gradient(135deg, #000000, #0a0a0a, #1a1a1a, #2d2d2d, #404040);
+            box-shadow: 0 0 50px rgba(64, 64, 64, 0.8), inset 0 0 50px rgba(26, 26, 26, 0.5);
+        }
+
+        .theme-carbon-copy .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(45deg, transparent 0px, rgba(255,255,255,0.02) 1px, transparent 2px, transparent 10px),
+                repeating-linear-gradient(-45deg, transparent 0px, rgba(255,255,255,0.02) 1px, transparent 2px, transparent 10px);
+        }
+
+        .theme-space .ticket-main {
+            background: linear-gradient(135deg, #000000, #000033, #0a0050, #1a1a3d);
+            position: relative;
+            box-shadow: 0 0 60px rgba(26, 26, 61, 0.9);
+        }
+
+        .theme-space .ticket-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 15% 25%, rgba(255, 107, 107, 0.9) 0%, rgba(255, 107, 107, 0.4) 20px, transparent 40px),
+                radial-gradient(circle at 70% 20%, rgba(78, 205, 196, 0.8) 0%, rgba(78, 205, 196, 0.3) 25px, transparent 55px),
+                radial-gradient(circle at 80% 75%, rgba(255, 230, 109, 0.9) 0%, rgba(255, 230, 109, 0.4) 22px, transparent 50px),
+                radial-gradient(circle at 25% 80%, rgba(168, 230, 207, 0.7) 0%, rgba(168, 230, 207, 0.3) 18px, transparent 40px),
+                radial-gradient(1px 1px at 20% 40%, white, transparent),
+                radial-gradient(1px 1px at 60% 70%, white, transparent),
+                radial-gradient(1px 1px at 50% 20%, white, transparent),
+                radial-gradient(1px 1px at 80% 50%, white, transparent),
+                radial-gradient(1px 1px at 30% 60%, white, transparent);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 200% 200%, 200% 200%, 200% 200%, 200% 200%, 200% 200%;
+            animation: spaceTwinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes spaceTwinkle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .blockchain-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255,255,255,0.03) 10px,
+                rgba(255,255,255,0.03) 20px
+            );
+            pointer-events: none;
+        }
+
+        .ticket-header {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .pass-title {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .event-name {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .pass-theme-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .gratitude-badge {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+            letter-spacing: 0.5px;
+        }
+
+        .ticket-content {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .campus-access {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 2px dashed rgba(255,255,255,0.3);
+        }
+
+        .rgb-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff0000, #00ff00, #0000ff, #ff0000);
+            background-size: 300% 300%;
+            animation: rgbGlow 3s ease infinite;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            flex-shrink: 0;
+        }
+
+        @keyframes rgbGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .access-text {
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .team-info {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        .ticket-stub {
+            width: 200px;
+            background: white;
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 2px dashed #ddd;
+            position: relative;
+        }
+
+        .ticket-stub::before,
+        .ticket-stub::after {
+            content: '';
+            position: absolute;
+            left: -12px;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+        }
+
+        .ticket-stub::before {
+            top: -11px;
+        }
+
+        .ticket-stub::after {
+            bottom: -11px;
+        }
+
+        .qr-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #qrcode {
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            border: 2px solid #f0f0f0;
+        }
+
+        .stub-info {
+            text-align: center;
+            width: 100%;
+        }
+
+        .stub-label {
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stub-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .barcode-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .barcode-container {
+            background: white;
+            padding: 5px;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .pass-id {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-panel">
+        <h2>🎫 Pass Editor - Team C</h2>
+        
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" placeholder="Enter name">
+        </div>
+
+        <div class="form-group">
+            <label for="designation">Designation:</label>
+            <select id="designation">
+                <option value="">Select designation</option>
+                <option value="Teacher">Teacher</option>
+                <option value="Student">Student</option>
+                <option value="Visitor">Visitor</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="theme">Pass Theme:</label>
+            <select id="theme">
+                <option value="glitchy-glitch">Glitchy Glitch</option>
+                <option value="royal-blue">Royal Blue</option>
+                <option value="cyberpunk">Cyberpunk</option>
+                <option value="fortnite">Fortnite</option>
+                <option value="royal-ruby">Royal Ruby</option>
+                <option value="elite-emerald">Elite Emerald</option>
+                <option value="aurum-elite">Aurum Elite</option>
+                <option value="silver-package">Silver Package</option>
+                <option value="platinum-executive">Platinum Executive</option>
+                <option value="diamond-legacy">Diamond Legacy</option>
+                <option value="carbon-copy">Carbon Copy</option>
+                <option value="space">Space with Planets</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="time">Time:</label>
+            <input type="time" id="time">
+        </div>
+
+        <div class="form-group">
+            <label for="date">Date:</label>
+            <input type="date" id="date">
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-generate" onclick="generatePass()">Generate</button>
+            <button class="btn btn-download" onclick="downloadPass()">Download</button>
+        </div>
+
+        <div class="warning" id="warning"></div>
+    </div>
+
+    <div class="pass-container">
+        <div class="ticket" id="ticket">
+            <div class="ticket-main">
+                <div class="blockchain-pattern"></div>
+                
+                <div class="ticket-header">
+                    <div class="pass-title">
+                        <div class="event-name">GRATITUDE PASS</div>
+                        <div class="pass-theme-label" id="passTheme">PASS THEME</div>
+                    </div>
+                    <div class="gratitude-badge">CAMPUS ACCESS</div>
+                </div>
+
+                <div class="ticket-content">
+                    <div class="info-row">
+                        <div class="info-item" style="flex: 1;">
+                            <div class="info-label">Name</div>
+                            <div class="info-value" id="displayName">-</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-item" style="flex: 1;">
+                            <div class="info-label">Designation</div>
+                            <div class="info-value" id="displayDesignation">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Time</div>
+                            <div class="info-value" id="displayTime">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Date</div>
+                            <div class="info-value" id="displayDate">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="campus-access">
+                    <div class="rgb-circle"></div>
+                    <div>
+                        <div class="access-text">BLOCKCHAIN DEVELOPER</div>
+                        <div class="team-info">Team C Expo | Career Options in Computer Science</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ticket-stub">
+                <div class="qr-container">
+                    <div id="qrcode"></div>
+                </div>
+
+                <div class="stub-info">
+                    <div class="stub-label">Pass Theme</div>
+                    <div class="stub-value" id="stubTheme" style="font-size: 11px;">-</div>
+                </div>
+
+                <div class="barcode-section">
+                    <div class="barcode-container">
+                        <svg id="barcode"></svg>
+                    </div>
+                    <div class="pass-id" id="passId">CCVX-00000</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let passGenerated = false;
+        let currentPassData = null;
+
+        // Set current time and date
+        window.onload = function() {
+            const now = new Date();
+            document.getElementById('time').value = now.toTimeString().slice(0,5);
+            document.getElementById('date').value = now.toISOString().slice(0,10);
+        };
+
+        function generatePassId() {
+            const randomNum = Math.floor(10000 + Math.random() * 90000);
+            return `CCVX${randomNum}`;
+        }
+
+        function generatePass() {
+            const name = document.getElementById('name').value.trim();
+            const designation = document.getElementById('designation').value;
+            const theme = document.getElementById('theme').value;
+            const time = document.getElementById('time').value;
+            const date = document.getElementById('date').value;
+            const warning = document.getElementById('warning');
+
+            // Validation
+            if (!name || !designation) {
+                warning.textContent = '⚠️ Please fill in all required fields!';
+                warning.style.display = 'block';
+                setTimeout(() => warning.style.display = 'none', 3000);
+                return;
+            }
+
+            warning.style.display = 'none';
+
+            // Generate Pass ID
+            const passId = generatePassId();
+
+            // Update Pass Display
+            document.getElementById('displayName').textContent = name;
+            document.getElementById('displayDesignation').textContent = designation;
+            document.getElementById('displayTime').textContent = time;
+            document.getElementById('displayDate').textContent = date;
+            document.getElementById('passId').textContent = passId;
+            
+            const themeName = theme.replace(/-/g, ' ').toUpperCase();
+            document.getElementById('passTheme').textContent = themeName;
+            document.getElementById('stubTheme').textContent = themeName;
+
+            // Apply Theme
+            const ticket = document.getElementById('ticket');
+            ticket.className = 'ticket theme-' + theme;
+
+            // Generate QR Code
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            
+            const themeDisplay = theme.replace(/-/g, ' ');
+            const honorific = 'Mr/Ms';
+            const qrMessage = `${honorific}. ${name} has created this gratitude pass on theme of "${themeDisplay}" on ${date} at ${time}`;
+            
+            currentPassData = {
+                passId: passId,
+                name: name,
+                designation: designation,
+                time: time,
+                date: date,
+                qrMessage: qrMessage
+            };
+            
+            new QRCode(qrContainer, {
+                text: qrMessage,
+                width: 90,
+                height: 90,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+            });
+
+            // Generate Barcode
+            JsBarcode("#barcode", passId, {
+                format: "CODE128",
+                width: 1.5,
+                height: 35,
+                displayValue: false,
+                margin: 0
+            });
+
+            passGenerated = true;
+        }
+
+        function downloadPass() {
+            const warning = document.getElementById('warning');
+
+            if (!passGenerated) {
+                warning.textContent = '⚠️ Please generate the pass first!';
+                warning.style.display = 'block';
+                setTimeout(() => warning.style.display = 'none', 3000);
+                return;
+            }
+
+            const ticket = document.getElementById('ticket');
+            
+            html2canvas(ticket, {
+                scale: 3,
+                backgroundColor: '#ffffff',
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `GratitudePass_${currentPassData.passId}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
